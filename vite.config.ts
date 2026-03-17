@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 export default defineConfig({
+  base: '/clotato/',
   server: {
     watch: {
       // inotify doesn't fire across the WSL2/Windows filesystem boundary.

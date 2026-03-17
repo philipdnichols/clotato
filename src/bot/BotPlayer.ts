@@ -157,7 +157,7 @@ export class BotPlayer {
       return { done: false, report };
     }
 
-    // All runs complete — expose results globally
+    // All runs complete — expose results globally and auto-save to disk
     const finalOutput = {
       strategy: this.strategy.name,
       runs: this.allReports,
@@ -165,6 +165,12 @@ export class BotPlayer {
     };
     (window as unknown as Record<string, unknown>).__playtestReport = finalOutput;
     (window as unknown as Record<string, unknown>).__playtestDone = true;
+
+    fetch('/api/save-playtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(finalOutput),
+    }).catch(() => { /* non-fatal if dev server endpoint unavailable */ });
 
     return { done: true, report: finalOutput };
   }
