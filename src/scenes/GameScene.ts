@@ -8,6 +8,10 @@ import { UpgradeManager } from '../systems/UpgradeManager';
 import type { UpgradeDef } from '../data/upgrades';
 import { GAME_DURATION } from '../data/waves';
 import { ENEMIES } from '../data/enemies';
+import { BotPlayer } from '../bot/BotPlayer';
+import { PlaytestReporter } from '../bot/PlaytestReporter';
+import type { BotGameState } from '../bot/BotTypes';
+import { seedRng, resetToRandom } from '../rng';
 
 const WORLD_W = 3200;
 const WORLD_H = 3200;
@@ -25,9 +29,9 @@ export class GameScene extends Phaser.Scene {
     right: Phaser.Input.Keyboard.Key;
   };
 
-  private enemies!: Phaser.GameObjects.Group;
+  enemies!: Phaser.GameObjects.Group;
   private bullets!: Phaser.GameObjects.Group;
-  private gems!: Phaser.GameObjects.Group;
+  gems!: Phaser.GameObjects.Group;
 
   private waveManager!: WaveManager;
   private upgradeManager!: UpgradeManager;
@@ -35,11 +39,41 @@ export class GameScene extends Phaser.Scene {
   private nearestEnemy: Enemy | null = null;
   private splatters: Phaser.GameObjects.Image[] = [];
 
+  // Bot playtesting
+  bot: BotPlayer | null = null;
+  gemsSpawnedTotal = 0;
+  gemsCollectedTotal = 0;
+  lastDeathCause = 'unknown';
+
+  // Human session recording (?record=true)
+  recorder: PlaytestReporter | null = null;
+  private recorderPrevGemsSpawned = 0;
+  private recorderPrevGemsCollected = 0;
+
+  // Pause / upgrade tracking
+  appliedUpgrades: UpgradeDef[] = [];
+  private gameOver = false;
+
   constructor() {
     super({ key: 'GameScene' });
   }
 
   create(): void {
+    // Reset all instance state — scene.restart() reuses the class instance
+    this.kills = 0;
+    this.elapsed = 0;
+    this.gemsSpawnedTotal = 0;
+    this.gemsCollectedTotal = 0;
+    this.lastDeathCause = 'unknown';
+    this.splatters = [];
+    this.nearestEnemy = null;
+    this.appliedUpgrades = [];
+    this.bot = null;
+    this.gameOver = false;
+    this.recorder = null;
+    this.recorderPrevGemsSpawned = 0;
+    this.recorderPrevGemsCollected = 0;
+
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
 
     this.generateSplatterTextures();
@@ -100,11 +134,75 @@ export class GameScene extends Phaser.Scene {
       },
     };
 
+    // Bot mode — activated via ?bot=<strategy>&speed=<n>&runs=<n>
+    // Persisted bot survives scene.restart() so run count is maintained.
+    const win = window as unknown as Record<string, unknown>;
+    const persistedBot = win.__activeBotPlayer as BotPlayer | undefined;
+    const params = new URLSearchParams(window.location.search);
+    const botParam = params.get('bot');
+
+    if (persistedBot) {
+      this.bot = persistedBot;
+      delete win.__activeBotPlayer;
+      this.time.timeScale = this.bot.timeScale;
+      this.physics.world.timeScale = 1 / this.bot.timeScale;
+      console.log(`[BOT] Resuming run ${this.bot.currentRun} of ${this.bot.totalRuns}`);
+    } else if (botParam) {
+      const speed = Number(params.get('speed') ?? 1);
+      const runs = Number(params.get('runs') ?? 1);
+      this.bot = new BotPlayer(botParam, speed, runs);
+      this.time.timeScale = speed;
+      this.physics.world.timeScale = 1 / speed;
+      console.log(`[BOT] Strategy: ${botParam} | Speed: ${speed}x | Runs: ${runs}`);
+    }
+
+    // Seeded RNG (?seed=<n>) — same seed produces identical upgrade offers and spawn patterns.
+    // Each run within a multi-run session gets seed+runIndex so runs differ but stay reproducible.
+    const seedParam = params.get('seed');
+    const activeSeed: number | null = seedParam !== null ? parseInt(seedParam, 10) : null;
+    if (activeSeed !== null) {
+      const runOffset = this.bot ? this.bot.currentRun - 1 : 0;
+      seedRng(activeSeed + runOffset);
+      console.log(`[RNG] Seeded with ${activeSeed + runOffset} (base ${activeSeed}, run ${runOffset + 1})`);
+    } else {
+      resetToRandom();
+    }
+
+    // Stamp seed onto the active reporter (bot or human)
+    const stampSeed = (r: import('../bot/PlaytestReporter').PlaytestReporter) => {
+      r.seed = activeSeed !== null ? activeSeed + (this.bot ? this.bot.currentRun - 1 : 0) : null;
+    };
+    if (this.bot?.reporter) stampSeed(this.bot.reporter);
+
+    // Human session recorder (?record=true) — captures the same stats as bot mode
+    if (params.get('record') === 'true' && !this.bot) {
+      this.recorder = new PlaytestReporter('human', 1, 1);
+      if (activeSeed !== null) stampSeed(this.recorder);
+      console.log('[RECORD] Human session recording active — play normally, report saved on game end');
+    }
+
+    // Pre-load a human upgrade sequence for the human_emulator strategy (?upgrades=Label1,Label2,...)
+    const upgradesParam = params.get('upgrades');
+    if (upgradesParam) {
+      (win as Record<string, unknown>).__humanUpgradeSequence =
+        upgradesParam.split(',').map(s => decodeURIComponent(s).trim());
+    }
+
+    // Pause on P key
+    this.input.keyboard?.on('keydown-P', () => {
+      if (this.scene.isActive('PauseScene')) return;
+      this.scene.pause('GameScene');
+      this.scene.launch('PauseScene');
+    });
+
     this.scene.launch('UIScene');
   }
 
-  update(_time: number, delta: number): void {
-    if (this.scene.isPaused()) return;
+  update(_time: number, rawDelta: number): void {
+    if (this.scene.isPaused() || this.gameOver) return;
+
+    // Scale delta so all manual calculations match physics and tween speed
+    const delta = rawDelta * (this.bot?.timeScale ?? 1);
 
     this.elapsed += delta / 1000;
 
@@ -116,8 +214,38 @@ export class GameScene extends Phaser.Scene {
     this.handleWaveSpawning(delta);
     this.checkBulletBounds();
 
+    // Feed frame data to human session recorder
+    if (this.recorder) {
+      const spawnDelta = this.gemsSpawnedTotal - this.recorderPrevGemsSpawned;
+      const collectDelta = this.gemsCollectedTotal - this.recorderPrevGemsCollected;
+      this.recorderPrevGemsSpawned = this.gemsSpawnedTotal;
+      this.recorderPrevGemsCollected = this.gemsCollectedTotal;
+      this.recorder.onFrame(this.buildBotGameState(), spawnDelta, collectDelta);
+    }
+
     if (this.player.isDead()) this.endGame(false);
     if (this.elapsed >= GAME_DURATION) this.endGame(true);
+  }
+
+  buildBotGameState(): BotGameState {
+    return {
+      player: {
+        x: this.player.x,
+        y: this.player.y,
+        hp: this.player.hp,
+        maxHp: this.player.stats.maxHp,
+        level: this.player.level,
+        stats: this.player.stats,
+      },
+      enemies: (this.enemies.getChildren() as Enemy[])
+        .filter(e => e.active && e.alive)
+        .map(e => ({ x: e.x, y: e.y, radius: e.def.radius, speed: e.def.speed, damage: e.def.damage, key: e.def.key })),
+      gems: (this.gems.getChildren() as XPGem[])
+        .filter(g => g.active)
+        .map(g => ({ x: g.x, y: g.y, attracted: g.attracted })),
+      elapsed: this.elapsed,
+      kills: this.kills,
+    };
   }
 
   private handlePlayerMovement(): void {
@@ -126,12 +254,26 @@ export class GameScene extends Phaser.Scene {
     let vx = 0;
     let vy = 0;
 
-    if (this.cursors.left.isDown || this.wasd.left.isDown) vx -= 1;
-    if (this.cursors.right.isDown || this.wasd.right.isDown) vx += 1;
-    if (this.cursors.up.isDown || this.wasd.up.isDown) vy -= 1;
-    if (this.cursors.down.isDown || this.wasd.down.isDown) vy += 1;
+    if (this.bot) {
+      const result = this.bot.update(
+        this.player,
+        this.enemies.getChildren() as Enemy[],
+        this.gems.getChildren() as XPGem[],
+        this.elapsed,
+        this.kills,
+        this.gemsSpawnedTotal,
+        this.gemsCollectedTotal,
+      );
+      vx = result.vx;
+      vy = result.vy;
+    } else {
+      if (this.cursors.left.isDown || this.wasd.left.isDown) vx -= 1;
+      if (this.cursors.right.isDown || this.wasd.right.isDown) vx += 1;
+      if (this.cursors.up.isDown || this.wasd.up.isDown) vy -= 1;
+      if (this.cursors.down.isDown || this.wasd.down.isDown) vy += 1;
+      if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
+    }
 
-    if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
     body.setVelocity(vx * speed, vy * speed);
   }
 
@@ -148,7 +290,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     for (let i = 0; i < shots; i++) {
-      const spread = shots > 1 ? ((i / (shots - 1)) - 0.5) * 0.4 : 0;
+      const spread = (i - (shots - 1) / 2) * 0.2;
       this.fireBullet(this.player.x, this.player.y, baseAngle + spread);
     }
   }
@@ -182,6 +324,7 @@ export class GameScene extends Phaser.Scene {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
       if (dist < 28) {
         this.player.takeDamage(e.def.damage * (delta / 1000));
+        this.lastDeathCause = e.def.key;
       }
     }
   }
@@ -260,12 +403,14 @@ export class GameScene extends Phaser.Scene {
       const ox = (Math.random() - 0.5) * 20;
       const oy = (Math.random() - 0.5) * 20;
       gem.spawn(x + ox, y + oy, 1);
+      this.gemsSpawnedTotal++;
     }
   }
 
   private onPlayerPickupGem(gem: XPGem): void {
     if (!gem.active) return;
     gem.collect();
+    this.gemsCollectedTotal++;
     const leveledUp = this.player.addXP(gem.value);
     if (leveledUp) this.triggerLevelUp();
   }
@@ -278,8 +423,8 @@ export class GameScene extends Phaser.Scene {
 
   applyUpgrade(upgrade: UpgradeDef): void {
     this.upgradeManager.apply(upgrade, this.player.stats);
-    // Heal a bit on level up
-    this.player.heal(10);
+    this.appliedUpgrades.push(upgrade);
+    this.player.heal(this.player.stats.maxHp);
   }
 
   private generateSplatterTextures(): void {
@@ -360,7 +505,56 @@ export class GameScene extends Phaser.Scene {
   }
 
   private endGame(won: boolean): void {
-    this.scene.pause();
+    if (this.recorder) {
+      const state = this.buildBotGameState();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const report = this.recorder.finalize(state, won, this.lastDeathCause) as any;
+      const output = { strategy: 'human', runs: [report] };
+      (window as unknown as Record<string, unknown>).__humanPlaytestReport = output;
+      (window as unknown as Record<string, unknown>).__humanPlaytestDone = true;
+      // POST to Vite dev server so the report lands on disk automatically
+      fetch('/api/save-playtest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(output),
+      }).catch(() => { /* non-fatal if dev server endpoint unavailable */ });
+      console.log(
+        `[RECORD] Session complete — ${won ? 'WIN' : `died (${this.lastDeathCause})`} | ` +
+        `Survived: ${report.meta.survived} | Lvl: ${report.meta.levelReached} | Kills: ${this.kills}`,
+      );
+    }
+
+    if (this.bot) {
+      const { done } = this.bot.onGameEnd(
+        this.player,
+        this.enemies.getChildren() as Enemy[],
+        this.gems.getChildren() as XPGem[],
+        this.elapsed, this.kills, won, this.lastDeathCause,
+      );
+      if (!done) {
+        // Persist bot across restart so run count is maintained
+        (window as unknown as Record<string, unknown>).__activeBotPlayer = this.bot;
+        this.scene.stop('UIScene');
+        this.scene.stop('UpgradeScene');
+        this.scene.restart();
+        return;
+      }
+      // All runs done — fall through to show end screen (bot stays visible so Playwright sees it's done)
+    }
+
+    // Freeze game logic without pausing the scene — pausing kills keyboard input
+    this.gameOver = true;
+    // Disable physics body entirely — prevents physics residue and enemy bumping from moving player
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+    body.setEnable(false);
+    // Stop camera follow so the lerp doesn't keep sliding the camera after game over.
+    // Snap it to the player's exact position first so the overlay appears centered.
+    this.cameras.main.stopFollow();
+    this.cameras.main.setScroll(
+      this.player.x - this.scale.width / 2,
+      this.player.y - this.scale.height / 2,
+    );
     const W = this.scale.width;
     const H = this.scale.height;
     const camX = this.cameras.main.scrollX;

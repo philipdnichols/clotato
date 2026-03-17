@@ -1,10 +1,11 @@
 import { UPGRADES, type UpgradeDef, type PlayerStats } from '../data/upgrades';
+import { rng } from '../rng';
 
 export class UpgradeManager {
   private appliedCounts: Map<string, number> = new Map();
 
   getChoices(count = 3): UpgradeDef[] {
-    const shuffled = [...UPGRADES].sort(() => Math.random() - 0.5);
+    const shuffled = [...UPGRADES].sort(() => rng() - 0.5);
     return shuffled.slice(0, count);
   }
 

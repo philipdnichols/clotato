@@ -1,5 +1,6 @@
 import { ENEMIES, type EnemyDef } from '../data/enemies';
 import { WAVE_CONFIGS } from '../data/waves';
+import { rng } from '../rng';
 
 export class WaveManager {
   private spawnTimer: number = 0;
@@ -27,7 +28,7 @@ export class WaveManager {
 
   private pickEnemy(weights: Record<string, number>): EnemyDef {
     const total = Object.values(weights).reduce((a, b) => a + b, 0);
-    let roll = Math.random() * total;
+    let roll = rng() * total;
     for (const [key, w] of Object.entries(weights)) {
       roll -= w;
       if (roll <= 0) {
@@ -39,12 +40,12 @@ export class WaveManager {
 
   randomSpawnPosition(camX: number, camY: number, viewW: number, viewH: number): { x: number; y: number } {
     const margin = 60;
-    const side = Math.floor(Math.random() * 4);
+    const side = Math.floor(rng() * 4);
     switch (side) {
-      case 0: return { x: camX + Math.random() * viewW, y: camY - margin };
-      case 1: return { x: camX + viewW + margin, y: camY + Math.random() * viewH };
-      case 2: return { x: camX + Math.random() * viewW, y: camY + viewH + margin };
-      default: return { x: camX - margin, y: camY + Math.random() * viewH };
+      case 0: return { x: camX + rng() * viewW, y: camY - margin };
+      case 1: return { x: camX + viewW + margin, y: camY + rng() * viewH };
+      case 2: return { x: camX + rng() * viewW, y: camY + viewH + margin };
+      default: return { x: camX - margin, y: camY + rng() * viewH };
     }
   }
 }
