@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Slime body — squat irregular green blob -->
+  <path d="M 24 8 C 34 8 42 14 43 24 C 44 32 38 42 24 43 C 10 42 5 32 6 24 C 7 14 14 8 24 8 Z"
+        fill="#22cc33" stroke="#118822" stroke-width="2.5"/>
+  <!-- Highlight blob -->
+  <ellipse cx="19" cy="18" rx="8" ry="6" fill="#88ff88" fill-opacity="0.55"/>
+  <!-- Drip at bottom -->
+  <path d="M 22 43 Q 20 50 22 52" stroke="#118822" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 28 43 Q 30 49 28 51" stroke="#118822" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Eyes — simple and slightly dumb-looking -->
+  <circle cx="19" cy="26" r="5" fill="#003300"/>
+  <circle cx="20" cy="25" r="2" fill="white"/>
+  <circle cx="29" cy="26" r="5" fill="#003300"/>
+  <circle cx="30" cy="25" r="2" fill="white"/>
+  <!-- Mouth — goofy open grin -->
+  <path d="M 17 34 Q 24 40 31 34" stroke="#004400" stroke-width="2" fill="#00aa22" stroke-linecap="round"/>
+</svg>

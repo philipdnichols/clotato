@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Runner — lean angled potato-chip shape, tilted to suggest speed -->
+  <!-- Speed lines behind it -->
+  <line x1="4" y1="18" x2="14" y2="20" stroke="#ff9955" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="2" y1="26" x2="13" y2="27" stroke="#ff9955" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="5" y1="34" x2="14" y2="33" stroke="#ff9955" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <!-- Body — angled chip/wedge -->
+  <path d="M 20 6 C 32 6 44 12 44 26 C 44 38 36 44 26 44 C 14 44 10 36 10 26 C 10 14 12 6 20 6 Z"
+        fill="#ee6611" stroke="#aa3300" stroke-width="2.5"/>
+  <!-- Angled highlight suggesting forward lean -->
+  <ellipse cx="24" cy="20" rx="9" ry="6" fill="#ffaa55" fill-opacity="0.6" transform="rotate(-15 24 20)"/>
+  <!-- Angry focused eye (single, large, forward-facing) -->
+  <circle cx="30" cy="24" r="6" fill="#220000"/>
+  <circle cx="31" cy="23" r="2.5" fill="white"/>
+  <circle cx="32" cy="23" r="1.2" fill="#ff2200"/>
+  <!-- Angry brow -->
+  <line x1="24" y1="18" x2="34" y2="20" stroke="#aa3300" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

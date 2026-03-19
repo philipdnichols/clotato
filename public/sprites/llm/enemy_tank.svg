@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Tank — large armoured potato, hexagonal shell -->
+  <!-- Outer armour plates (dark purple hexagon-ish) -->
+  <polygon points="32,4 52,14 58,34 52,54 32,60 12,54 6,34 12,14"
+           fill="#4a1a99" stroke="#220066" stroke-width="2.5"/>
+  <!-- Armour plate lines -->
+  <line x1="32" y1="4"  x2="32" y2="60" stroke="#330077" stroke-width="1.5" opacity="0.5"/>
+  <line x1="6"  y1="34" x2="58" y2="34" stroke="#330077" stroke-width="1.5" opacity="0.5"/>
+  <!-- Inner body -->
+  <ellipse cx="32" cy="34" rx="20" ry="20" fill="#7733ee"/>
+  <!-- Body highlight -->
+  <ellipse cx="26" cy="26" rx="10" ry="8" fill="#aa77ff" fill-opacity="0.45"/>
+  <!-- Armour bolts at vertices -->
+  <circle cx="32" cy="4"  r="3" fill="#220066"/>
+  <circle cx="52" cy="14" r="3" fill="#220066"/>
+  <circle cx="58" cy="34" r="3" fill="#220066"/>
+  <circle cx="52" cy="54" r="3" fill="#220066"/>
+  <circle cx="32" cy="60" r="3" fill="#220066"/>
+  <circle cx="12" cy="54" r="3" fill="#220066"/>
+  <circle cx="6"  cy="34" r="3" fill="#220066"/>
+  <circle cx="12" cy="14" r="3" fill="#220066"/>
+  <!-- Mean eyes — slanted / scowling -->
+  <ellipse cx="24" cy="30" rx="5" ry="4" fill="#110022"/>
+  <ellipse cx="40" cy="30" rx="5" ry="4" fill="#110022"/>
+  <circle cx="24" cy="30" r="2" fill="#ff1144"/>
+  <circle cx="40" cy="30" r="2" fill="#ff1144"/>
+  <!-- Scowl brow lines -->
+  <line x1="18" y1="24" x2="28" y2="27" stroke="#220066" stroke-width="3" stroke-linecap="round"/>
+  <line x1="36" y1="27" x2="46" y2="24" stroke="#220066" stroke-width="3" stroke-linecap="round"/>
+  <!-- Grimace mouth -->
+  <path d="M 22 40 Q 32 36 42 40" stroke="#220066" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</svg>

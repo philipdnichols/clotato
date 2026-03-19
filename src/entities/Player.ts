@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { type PlayerStats, BASE_STATS } from '../data/upgrades';
+import { textureKey } from '../assets/AssetMode';
 
 export class Player extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
@@ -10,7 +11,7 @@ export class Player extends Phaser.GameObjects.Container {
   level: number = 1;
   xpToNext: number = 10;
 
-  private sprite: Phaser.GameObjects.Ellipse;
+  private sprite: Phaser.GameObjects.Ellipse | Phaser.GameObjects.Image;
   private hpBar: Phaser.GameObjects.Rectangle;
   private hpBarBg: Phaser.GameObjects.Rectangle;
 
@@ -22,8 +23,15 @@ export class Player extends Phaser.GameObjects.Container {
     this.stats = { ...BASE_STATS };
     this.hp = this.stats.maxHp;
 
-    // Body
-    this.sprite = scene.add.ellipse(0, 0, 28, 28, 0xf5c842);
+    // Use sprite texture if available (Mode B/C/A), otherwise plain ellipse
+    const key = textureKey('player');
+    if (scene.textures.exists(key)) {
+      const img = scene.add.image(0, 0, key);
+      img.setDisplaySize(28, 28);
+      this.sprite = img;
+    } else {
+      this.sprite = scene.add.ellipse(0, 0, 28, 28, 0xf5c842);
+    }
     this.add(this.sprite);
 
     // HP bar background
@@ -50,7 +58,7 @@ export class Player extends Phaser.GameObjects.Container {
     // Flash red
     this.scene.tweens.add({
       targets: this.sprite,
-      fillColor: { from: 0xff2222, to: 0xf5c842 },
+      alpha: { from: 0.3, to: 1 },
       duration: 150,
       ease: 'Linear',
     });

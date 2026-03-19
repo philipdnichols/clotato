@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
+import { textureKey } from '../assets/AssetMode';
 
-export class XPGem extends Phaser.GameObjects.Ellipse {
+export class XPGem extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
   value: number = 1;
   attractVx: number = 0;
@@ -8,12 +9,23 @@ export class XPGem extends Phaser.GameObjects.Ellipse {
   attracted: boolean = false;
 
   constructor(scene: Phaser.Scene) {
-    super(scene, 0, 0, 10, 10, 0x00ffcc);
+    super(scene, 0, 0);
+
+    const key = textureKey('gem');
+    if (scene.textures.exists(key)) {
+      const img = scene.add.image(0, 0, key);
+      img.setDisplaySize(10, 10);
+      this.add(img);
+    } else {
+      this.add(scene.add.ellipse(0, 0, 10, 10, 0x00ffcc));
+    }
+
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setActive(false).setVisible(false);
+
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setCircle(5);
+    body.setCircle(5, -5, -5);
     body.setImmovable(true);
     body.allowGravity = false;
   }

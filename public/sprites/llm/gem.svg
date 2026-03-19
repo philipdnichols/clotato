@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <!-- XP gem — faceted diamond, cyan/teal -->
+  <!-- Outer glow -->
+  <polygon points="10,1 19,10 10,19 1,10" fill="#00ffcc" fill-opacity="0.25"/>
+  <!-- Main body -->
+  <polygon points="10,3 17,10 10,17 3,10" fill="#00ddaa" stroke="#007755" stroke-width="1.5"/>
+  <!-- Top-left facet (lighter) -->
+  <polygon points="10,3 17,10 10,10 3,10" fill="#66ffee" fill-opacity="0.6"/>
+  <!-- Centre facet line -->
+  <line x1="10" y1="3" x2="10" y2="17" stroke="#007755" stroke-width="0.8" opacity="0.5"/>
+  <!-- Bright highlight -->
+  <polygon points="10,3 14,7 10,7 6,7" fill="white" fill-opacity="0.7"/>
+</svg>

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { EnemyDef } from '../data/enemies';
+import { textureKey } from '../assets/AssetMode';
 
 export class Enemy extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
@@ -9,7 +10,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   maxHp: number;
   alive: boolean = true;
 
-  private sprite: Phaser.GameObjects.Ellipse;
+  private sprite: Phaser.GameObjects.Ellipse | Phaser.GameObjects.Image;
   private hpBar: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene, x: number, y: number, def: EnemyDef) {
@@ -19,7 +20,16 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.hp = def.hp;
     this.maxHp = def.hp;
 
-    this.sprite = scene.add.ellipse(0, 0, def.radius * 2, def.radius * 2, def.color);
+    // Use sprite texture if available, otherwise plain ellipse
+    const key = textureKey(def.key as Parameters<typeof textureKey>[0]);
+    if (scene.textures.exists(key)) {
+      const img = scene.add.image(0, 0, key);
+      const size = def.radius * 2;
+      img.setDisplaySize(size, size);
+      this.sprite = img;
+    } else {
+      this.sprite = scene.add.ellipse(0, 0, def.radius * 2, def.radius * 2, def.color);
+    }
     this.add(this.sprite);
 
     const barW = Math.max(def.radius * 2, 20);

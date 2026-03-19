@@ -145,6 +145,30 @@ The `base` in `vite.config.ts` is set to `/clotato/` for correct asset paths on 
 
 ---
 
+## Asset Modes
+
+Three switchable modes via `?assets=a|b|c` (default: `b`):
+
+| Mode | Graphics | Audio |
+|------|----------|-------|
+| `a` | Kenney.nl PNG sprites (loaded from `public/sprites/free/`) | Kenney.nl OGG files (`public/audio/`) |
+| `b` | Phaser procedural drawing (generated in code at startup) | ZzFX synthesised at runtime |
+| `c` | LLM-authored SVGs (`public/sprites/llm/`) | ZzFX synthesised at runtime |
+
+Mode A requires manual download of Kenney asset packs — see `src/assets/FreeAssets.ts` for filenames.
+Sounds are muted during bot runs (all modes).
+
+Key new files:
+- `src/assets/AssetMode.ts` — mode detection + `textureKey()` helper
+- `src/assets/sounds.ts` — `playSound(scene, key, mute?)` dispatcher
+- `src/assets/zzfx.ts` — ZzFX sound synthesiser (no npm dep, embedded)
+- `src/assets/GeneratedGraphics.ts` — Mode B texture generation
+- `src/assets/LLMAssets.ts` — Mode C SVG loader
+- `src/assets/FreeAssets.ts` — Mode A sprite loader
+- `public/sprites/llm/` — Mode C SVG sprites
+
+---
+
 ## What NOT to Do
 
 - Don't rebalance upgrades/enemies without running a full playtest suite first

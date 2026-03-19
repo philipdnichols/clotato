@@ -12,6 +12,9 @@ import { BotPlayer } from '../bot/BotPlayer';
 import { PlaytestReporter } from '../bot/PlaytestReporter';
 import type { BotGameState } from '../bot/BotTypes';
 import { seedRng, resetToRandom } from '../rng';
+import { getAssetMode } from '../assets/AssetMode';
+import { generateAllTextures } from '../assets/GeneratedGraphics';
+import { loadLLMSprites } from '../assets/LLMAssets';
 
 const WORLD_W = 3200;
 const WORLD_H = 3200;
@@ -58,6 +61,11 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
+  preload(): void {
+    if (getAssetMode() === 'c') loadLLMSprites(this);
+    // Mode B: no file loading — textures generated in create()
+  }
+
   create(): void {
     // Reset all instance state — scene.restart() reuses the class instance
     this.kills = 0;
@@ -75,6 +83,9 @@ export class GameScene extends Phaser.Scene {
     this.recorderPrevGemsCollected = 0;
 
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
+
+    // Generate procedural textures for Mode B (Mode A/C textures loaded in preload())
+    if (getAssetMode() === 'b') generateAllTextures(this);
 
     this.generateSplatterTextures();
 

@@ -4,6 +4,79 @@ Items are roughly prioritised within each section. Add detail as designs become 
 
 ---
 
+## Asset Implementation Modes
+
+Audio and graphics are implemented in three switchable modes via URL param `?assets=a|b|c`
+(default: `b`). This allows direct comparison of feel and quality across approaches.
+
+| Mode | Graphics | Audio |
+|------|----------|-------|
+| **A** — Free resources | Kenney.nl CC0 PNG sprites | Kenney.nl CC0 OGG files |
+| **B** — Procedural code | Phaser `graphics` drawing (runtime) | ZzFX synthesised at runtime |
+| **C** — LLM-authored | SVG files written by Claude | ZzFX params designed by Claude |
+
+---
+
+### Mode A — Free Online Resources (Kenney.nl, CC0)
+
+**Audio:** Download these packs and place `.ogg` files in `public/audio/`:
+- Top-Down Shooter — weapon fire, impacts: https://kenney.nl/assets/top-down-shooter
+- Impact Sounds — hits, collisions: https://kenney.nl/assets/impact-sounds
+- RPG Audio — item pickup, level-up: https://kenney.nl/assets/rpg-audio
+- UI Audio — menu clicks, game over: https://kenney.nl/assets/ui-audio
+
+**Graphics:** Download these packs and place `.png` files in `public/sprites/`:
+- Roguelike Characters — fantasy creatures: https://kenney.nl/assets/roguelike-characters
+- Pixel Platformer — characters and objects: https://kenney.nl/assets/pixel-platformer
+- Top-Down Shooter — players and projectiles: https://kenney.nl/assets/top-down-shooter
+- All-in-1 bundle (60k+ assets): https://kenney.itch.io/kenney-game-assets
+
+**Status:** Infrastructure wired; requires manual download of asset packs before Mode A works.
+See `src/assets/FreeAssets.ts` for expected filenames.
+
+---
+
+### Mode B — Procedural Code (no external files)
+
+**Audio:** ZzFX (~1 KB JS sound synthesiser, `npm install zzfx`).
+Each sound is a plain parameter array synthesised at runtime via Web Audio API.
+Interactive designer: https://killedbyapixel.github.io/ZzFX/
+
+**Graphics:** Enhanced Phaser 3 procedural drawing via `graphics.fillPolygon()` /
+`graphics.fillCircle()` etc., baked to textures at startup with `generateTexture()`.
+Entity designs: potato body with dot eyes (player), squat blob (slime), chip wedge (runner),
+armoured square (tank), tiny oval (swarm), starch pellet (bullet), diamond (gem).
+
+---
+
+### Mode C — LLM-Authored Assets (SVG sprites + ZzFX)
+
+**Audio:** Same ZzFX approach as Mode B (Claude cannot output binary audio files).
+
+**Graphics:** SVG files authored by Claude, placed in `public/sprites/llm/`.
+Phaser loads them via `this.load.svg()` (rasterised to bitmap on load).
+Each entity has a hand-crafted SVG designed to convey the potato theme with clear
+silhouettes and colour-coding that reads well at small game sizes.
+
+---
+
+### Implementation Plan
+
+1. `src/assets/AssetMode.ts` — reads `?assets=` URL param, exports `ASSET_MODE` constant
+   and `getAssetMode()` helper.
+2. `src/assets/sounds.ts` — ZzFX parameter arrays for all SFX (shared by Mode B and C);
+   `playSound(scene, key)` dispatcher that routes to Phaser audio or ZzFX.
+3. `src/assets/GeneratedGraphics.ts` — Mode B procedural texture generation functions.
+4. `src/assets/FreeAssets.ts` — Mode A file manifest + Phaser load calls.
+5. `public/sprites/llm/` — SVG files for Mode C (player, slime, runner, tank, swarm,
+   bullet, gem, background tile).
+6. Add `preload()` to `GameScene` — branches on `ASSET_MODE` to build/load textures.
+7. Replace hardcoded geometry in `Player`, `Enemy`, `Bullet`, `XPGem` with texture keys.
+8. Call `playSound()` at each game event: shoot, enemy death, player hit, level-up,
+   gem pickup, game-over.
+
+---
+
 ## Audio & Juice
 
 **Goal:** Make the game feel satisfying to play. Currently silent with minimal feedback.
@@ -16,6 +89,8 @@ Items are roughly prioritised within each section. Add detail as designs become 
 - [ ] Level-up fanfare / visual flash
 - [ ] Gem collection particle burst
 - [ ] Player invincibility frames after taking damage (brief flash + I-frames)
+
+See **Asset Implementation Modes** above for how audio will be sourced (ZzFX vs Kenney).
 
 ---
 
@@ -37,6 +112,8 @@ Items are roughly prioritised within each section. Add detail as designs become 
   - Maybe brief "pop" animation before disappearing
 - [ ] Background — more interesting than flat grid (parallax layers? dirt/field texture?)
 - [ ] UI improvements — styled HP bar, animated kill counter, better fonts
+
+See **Asset Implementation Modes** above for how sprites will be sourced (procedural vs Kenney).
 
 ---
 

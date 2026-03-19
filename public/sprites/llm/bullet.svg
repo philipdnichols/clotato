@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 12">
+  <!-- Starch pellet / bullet — elongated, glowing white-gold -->
+  <!-- Outer glow -->
+  <ellipse cx="10" cy="6" rx="9" ry="5" fill="#ffe88a" fill-opacity="0.4"/>
+  <!-- Body -->
+  <ellipse cx="10" cy="6" rx="7.5" ry="4" fill="#fff5c0" stroke="#d4a017" stroke-width="1.2"/>
+  <!-- Core highlight -->
+  <ellipse cx="9" cy="5" rx="4" ry="2" fill="white" fill-opacity="0.85"/>
+  <!-- Trailing edge darker -->
+  <ellipse cx="14" cy="6" rx="2" ry="3" fill="#d4a017" fill-opacity="0.3"/>
+</svg>
